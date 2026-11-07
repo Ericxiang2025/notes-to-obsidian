@@ -11,7 +11,7 @@
   标题  md 的 YAML front matter title → 第一个 # 标题 → 文件名（去掉日期、「_原文」等后缀）
   时间  front matter created/date → 文件名里的日期 → 正文前 300 字里的日期 → 文件修改时间（会提示是推测）
   录音  .srt/.vtt、--audio、front matter is_audio: true、或正文里有 5 行以上时间戳 → 当作逐字稿
-配对：同一目录下同名、只差「_原文/_转写/_逐字稿/_摘要/_纪要/_summary/_transcript」后缀的文件合成一条笔记，
+配对：同一目录下文件名完全相同（含日期）、只差「_原文/_转写/_逐字稿/_摘要/_纪要/_summary/_transcript」后缀的文件合成一条笔记，
      摘要类进正文，原文类进逐字稿（Plaud、通义听悟、钉钉导出都会把摘要和原文拆成两个文件）。
 """
 import hashlib
@@ -134,6 +134,11 @@ def find_date(text):
     return None
 
 
+def pair_key(stem):
+    """配对用：只去掉「_摘要/_原文」这类后缀，保留日期——同名不同日的两次录音不能合成一条。"""
+    return TAG_RE.sub("", stem).strip() or stem
+
+
 def clean_title(stem):
     t = TAG_RE.sub("", stem)
     for r in DATE_RES:
@@ -181,7 +186,7 @@ def main():
             if f.is_file() and not f.name.startswith(".") and f.suffix.lower() not in TEXT_SUFFIXES | {".zip"}:
                 skipped.append(f.name)
             continue
-        key = (f.parent, clean_title(f.stem).lower())
+        key = (f.parent, pair_key(f.stem).lower())
         groups.setdefault(key, []).append(f)
 
     records, unreadable, guessed = [], [], 0
@@ -215,7 +220,7 @@ def main():
         if not created:
             created = datetime.fromtimestamp(min(f.stat().st_mtime for f in files)).replace(microsecond=0).isoformat()
             guessed += 1
-        rel = str(first.relative_to(folder).with_name(clean_title(first.stem)))
+        rel = str(first.relative_to(folder).with_name(pair_key(first.stem)))
         is_audio = bool(transcript) or a.audio or meta.get("is_audio") == "true"
         records.append(note_record(
             note_id=f"{a.source}-{hashlib.sha1(rel.encode('utf-8')).hexdigest()[:12]}",

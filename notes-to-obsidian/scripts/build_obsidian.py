@@ -308,9 +308,11 @@ class Builder:
             "> [!info] 关于这个知识库",
             f"> 共 {len(records)} 条笔记（{dates[0]} ～ {dates[-1]}），来自 "
             + "、".join(f"{k} {v} 条" for k, v in collections.Counter(r["source_label"] for r in records).most_common()) + "。",
-            f"> 录音 {sum(r['is_audio'] for r in records)} 条" + (f"，累计约 {minutes // 60} 小时" if minutes else "") + "，有逐字稿的都能点开原文。",
-            "",
         ]
+        audio = sum(r["is_audio"] for r in records)
+        if audio:
+            lines.append(f"> 录音 {audio} 条" + (f"，累计约 {minutes // 60} 小时" if minutes else "") + "，有逐字稿的都能点开原文。")
+        lines.append("")
         boards = []
         if mode in ("dual", "enterprise"):
             boards.append("- [[企业提效看板|🏢 企业提效看板]]：客户沟通、会议待办、可沉淀成 SOP 的方法")

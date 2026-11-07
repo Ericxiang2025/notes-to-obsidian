@@ -8,7 +8,7 @@
 
 - 落地格式（agent 自动导出时照这个写）
 - 得到大脑 ✅
-- 飞书云文档 / 知识库 / 妙记 ⚠️
+- 飞书知识库 / 云空间 / 妙记 ✅
 - 腾讯 ima ⚠️
 - Plaud 等录音卡
 - 钉钉闪记、通义听悟、讯飞听见
@@ -39,19 +39,25 @@ duration_min: 42
 
 全自动，见 SKILL.md 第三步。只读授权，不会新建或改动笔记。
 
-## 飞书 ⚠️
+## 飞书 ✅
 
-用飞书官方命令行 lark-cli（github.com/larksuite/cli，MIT 开源）：
+知识库（Wiki）+ 云空间文档 + 上传的 PDF/Word + 转存到云空间的妙记纪要，一条命令全自动（2026-11 实测 57 条，约 1.5 分钟）。
 
-1. `npx @larksuite/cli@latest install`（需要 Node 18+）
-2. `lark-cli config init --new`：按提示在飞书开放平台建一个自建应用。**企业版飞书可能要管理员审批**，卡住就请用户找管理员，或改走手动导出。
-3. `lark-cli auth login --recommend`，浏览器里点授权；`lark-cli auth status` 确认已登录。
-4. 所有命令都加 `--as user`，否则是用机器人身份，看不到用户自己的文档。
+1. 装官方命令行 lark-cli（github.com/larksuite/cli，MIT 开源）：`npx @larksuite/cli@latest install`（需要 Node 18+）。已装过就跳过。
+2. 第一次用：`lark-cli config init --new`，按提示在飞书开放平台建一个自建应用 ⚠️（这一步未实测；**企业版飞书可能要管理员审批**，卡住就请用户找管理员，或改走手动导出）。
+3. `lark-cli auth login --recommend`，浏览器里点授权；`lark-cli auth status` 里 `identities.user.status` 是 `ready`（或 `needs_refresh`，会自动刷新）就行。
+4. 导出 + 导入：
+   ```bash
+   python3 SKILL_DIR/scripts/fetch_feishu.py --kb KB
+   ```
+   - 全程只调读接口、用户身份（`--as user`），不改飞书里任何东西。
+   - 会逐层遍历个人文档库、所有能看到的知识空间、云空间全部文件夹；文档转成 Markdown（图片、排版标签去掉，引用的文档变成《标题》）。
+   - 上传的 .pdf .docx .md .txt .srt 一起下载并读文字；多维表格、电子表格、PPT 等不导出，结尾会列出来。
+   - 「智能纪要：X」和「文字记录：X」两篇会合成一条录音笔记（纪要进正文，文字记录进逐字稿）。
+   - 重跑只下载改过的文档。只要知识库加 `--only wiki`，只要云空间加 `--only drive`。
+5. 结尾打印「下载失败 N 篇」时直接重跑；还失败多半是没有阅读权限。
 
-导出：
-- 妙记（会议录音）：`lark-cli minutes +search --as user` 列出妙记，逐条 `minutes +detail` 取标题、时间、AI 纪要，逐字稿用 `minutes +download` 或开放接口 `GET /open-apis/minutes/v1/minutes/:minute_token/transcript`（权限 `minutes:minutes.transcript:export`，可选 txt/srt）。来源 key 用 `feishu_minutes`。
-  - 返回 403：妙记所有者关掉了导出，只能请所有者打开或跳过。
-- 云文档 / 知识库：`wiki +space-list` 列知识空间，`wiki +node-list` 列节点（**不递归**，要自己逐层往下列），`docs +fetch` 取文档正文。来源 key 用 `feishu`。
+飞书妙记本体（没转存成文档的会议录音）脚本还不导，需要时用 `lark-cli minutes +search --as user` 列出，`minutes +detail` 取纪要、`minutes +download` 取逐字稿 ⚠️，按「落地格式」写进 `KB/inbox/feishu_minutes/` 再 import_files.py（来源 key `feishu_minutes`）。返回 403 是妙记所有者关掉了导出。
 
 手动兜底：
 - 妙记：打开妙记 → 右上角「···」→「导出文字记录」→ 选 TXT 或 SRT

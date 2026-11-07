@@ -126,7 +126,12 @@ python3 SKILL_DIR/scripts/fetch_feishu.py --kb KB
 ```
 它会只读导出知识库、云空间文档和上传的 PDF/Word，并自动导入。约每篇 1-2 秒。看结尾的「非文档节点不导出」和「下载失败」两行，告诉用户哪些没导、为什么。
 
-### 4. 拉取其他来源
+### 4. 拉取腾讯 ima（第 4 项选了 3 才做）
+1. 请用户打开 https://ima.qq.com/agent-interface 生成 Client ID 和 API Key，告诉用户「不要发给我，等下会弹出输入框让你自己粘贴」。
+2. `python3 SKILL_DIR/scripts/setup_ima.py`：用户在弹窗里粘贴，脚本保存并测连接，打印出知识库列表才算成功。
+3. `python3 SKILL_DIR/scripts/fetch_ima.py --kb KB`：只读导出全部笔记和知识库文件，并自动导入。
+
+### 5. 拉取其他来源
 每个来源按 [references/sources-guide.md](references/sources-guide.md) 操作：
 - 能自动导出的：你按「落地格式」把每条笔记写成 md 放进 `KB/inbox/<来源key>/`。标 ⚠️ 的接口第一次先导 3-5 条，打开文件确认标题、时间、正文都对，再全量。
 - 手动导出的：用户给的文件夹直接用，不用复制。
@@ -137,42 +142,42 @@ python3 SKILL_DIR/scripts/import_files.py --kb KB --source <来源key> --dir "<�
 ```
 看输出：导入条数、录音转写条数、找不到日期的条数、读不出的文件。录音转写是 0 但用户说有录音，多半是只导了摘要没导原文，请用户补导。
 
-### 5. 写分类规范
+### 6. 写分类规范
 把 [references/taxonomy-template.md](references/taxonomy-template.md) 复制到 `KB/work/taxonomy.md`，用第 1、2、3、6 项填好所有【填写：…】。
 
-### 6. AI 分类
+### 7. AI 分类
 1. `python3 SKILL_DIR/scripts/build_catalog.py --kb KB`，把所有来源合在一起按每批 50 条切成 `KB/work/batch_XX.jsonl`。这时问第 6 项。
 2. 每批开一个子 agent，可以同时开（一次最多 8 个），任务写：「读 KB/work/taxonomy.md 和 KB/work/batch_XX.jsonl，按规范给每一条分类，结果写到 KB/work/out_XX.jsonl，每行一个 JSON，不得遗漏」。没有子 agent 就自己一批一批做。
 3. 全部子 agent 结束后运行 `python3 SKILL_DIR/scripts/merge_classified.py --kb KB`。打印 `MISSING` 或 `BAD` 时，只把对应批次重新分类，再合并，直到退出码为 0。
 
-### 7. 生成知识库数据
+### 8. 生成知识库数据
 ```bash
 python3 SKILL_DIR/scripts/build_kb.py --kb KB
 python3 SKILL_DIR/scripts/search.py --kb KB 客户
 ```
 输出里「待分类」应为 0；检索能搜到结果。
 
-### 8. 检查敏感信息
+### 9. 检查敏感信息
 在 `KB/索引/notes.jsonl` 里搜密码、密钥、token、`sk-`、身份证号、银行卡号这类内容。找到就把笔记标题、日期和来源告诉用户（不要复述内容本身），建议去原平台删掉或改掉那一段。
 
-### 9. 统一人名写法
-`python3 SKILL_DIR/scripts/build_obsidian.py --kb KB --entities` 预览人物和机构。同一人或同一机构的不同写法（错别字、中英文、简称）写进 config.json 的 `people_alias` / `org_alias`，如 `{"Big Apple": "BigApple"}`；值写 `null` 表示丢弃。拿不准的问用户。一定要在第 10 步之前做：已生成的笔记不会再覆盖。
+### 10. 统一人名写法
+`python3 SKILL_DIR/scripts/build_obsidian.py --kb KB --entities` 预览人物和机构。同一人或同一机构的不同写法（错别字、中英文、简称）写进 config.json 的 `people_alias` / `org_alias`，如 `{"Big Apple": "BigApple"}`；值写 `null` 表示丢弃。拿不准的问用户。一定要在第 11 步之前做：已生成的笔记不会再覆盖。
 
-### 10. 装 Obsidian、生成仓库并打开
+### 11. 装 Obsidian、生成仓库并打开
 1. 没装 Obsidian：macOS `brew install --cask obsidian`，Windows `winget install Obsidian.Obsidian`；都不行就请用户去 obsidian.md 下载安装。
 2. `python3 SKILL_DIR/scripts/build_obsidian.py --kb KB`
 3. 完全退出 Obsidian（macOS：`osascript -e 'quit app "Obsidian"'`），再运行 `python3 SKILL_DIR/scripts/register_vault.py --kb KB`。
 4. 启动 Obsidian（macOS `open -a Obsidian`），在仓库里打开首页「🏠 kb_name」。第一次打开会问「是否信任此仓库的作者」，告诉用户点「信任」。
 
-### 11. 带用户上手
+### 12. 带用户上手
 读 [references/after-install-guide.md](references/after-install-guide.md)，按第 1 节的三步话术带用户看首页、看板，并让用户马上试一个玩法。
 
 ## 更新知识库
 
 用户说「更新知识库」「把新笔记加进来」「再加一个来源」时：
-1. 得到大脑：`python3 SKILL_DIR/scripts/fetch_getnote.py --kb KB`（只下载新笔记）；飞书：`python3 SKILL_DIR/scripts/fetch_feishu.py --kb KB`（只下载改过的）。
-2. 其他来源：自动导出的重新导出到同一个 inbox 文件夹；手动的请用户把新导出的文件放进**原来那个文件夹**，再对每个来源重跑 import_files.py。新来源按第三步 3、4 加进来。
-3. `python3 SKILL_DIR/scripts/build_catalog.py --kb KB --only-new`，把新批次按第三步 6 分类，再跑 `merge_classified.py`。
+1. 得到大脑：`python3 SKILL_DIR/scripts/fetch_getnote.py --kb KB`（只下载新笔记）；飞书：`fetch_feishu.py --kb KB`；ima：`fetch_ima.py --kb KB`（都只下载改过的）。
+2. 其他来源：自动导出的重新导出到同一个 inbox 文件夹；手动的请用户把新导出的文件放进**原来那个文件夹**，再对每个来源重跑 import_files.py。新来源按第三步 3-5 加进来。
+3. `python3 SKILL_DIR/scripts/build_catalog.py --kb KB --only-new`，把新批次按第三步 7 分类，再跑 `merge_classified.py`。
 4. 重跑 `build_kb.py` 和 `build_obsidian.py`（用户在 Obsidian 改过、移动过的笔记会跳过，不会被覆盖）。
 5. 告诉用户新增了几条、来自哪些来源、分别在哪个分类，有没有新的高潜力选题。
 
@@ -188,7 +193,9 @@ python3 SKILL_DIR/scripts/search.py --kb KB 客户
 - 飞书 lark-cli 不加 `--as user` 会用机器人身份，看不到个人文档；`wiki +space-list` 不返回个人文档库，`wiki +node-list` 不递归，云空间和知识库是两套接口——fetch_feishu.py 都处理了。
 - 飞书 `drive +download --output` 只接受当前目录下的相对路径，给绝对路径报 `unsafe output path`。
 - 飞书妙记转存到云空间后是「智能纪要：X」「文字记录：X」两篇文档，fetch_feishu.py 会合成一条录音笔记。
-- 不要让用户把 API Key、密码贴进聊天：请用户自己写进本机文件，见 sources-guide 的 ima 部分。
+- 不要让用户把 API Key、密码贴进聊天：ima 用 setup_ima.py 弹窗让用户自己粘贴。用户已经贴进聊天的 Key 不要用，请他重新生成。
+- ima 的 Client ID 和 API Key 小白很容易粘反：setup_ima.py 会按「Client ID 是 32 位十六进制」自动对调。
+- ima 笔记取纯文本会丢分段，fetch_ima.py 取 JSON 再转 Markdown；没写标题的笔记标题是一个退格符，已用正文开头代替。
 - 子 agent 还在写的时候就合并，会少几十条：等所有子 agent 都报告结束再跑 merge_classified.py。
 - 分类没覆盖到的笔记会进 `00_待分类`，不会悄悄进「空白无效」；看到待分类就补分类。
 - 搜两个字的词（如「保险」）FTS 搜不到：trigram 分词至少要 3 个字，search.py 已自动改用 LIKE。
@@ -203,6 +210,7 @@ python3 SKILL_DIR/scripts/search.py --kb KB 客户
 - [ ] 第 4 项选的每个来源都已导入，或已告诉用户哪个来源卡住、怎么补
 - [ ] 得到大脑：`fetch_getnote.py` 显示详情已下载数 = 笔记总数，`errors=0`
 - [ ] 飞书：`fetch_feishu.py` 结尾没有「下载失败」，或已告诉用户哪几篇没权限
+- [ ] ima：`setup_ima.py --check` 显示已连接，`fetch_ima.py` 结尾没有「失败」
 - [ ] 其他来源：每个 import_files.py 的导入条数和用户预期大致相符，有录音的来源录音转写条数 > 0
 - [ ] `merge_classified.py` 退出码 0；`build_kb.py` 显示待分类 0
 - [ ] `search.py` 搜一个用户业务里的词能搜到笔记

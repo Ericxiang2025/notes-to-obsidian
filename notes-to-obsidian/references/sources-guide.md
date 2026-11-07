@@ -9,7 +9,7 @@
 - 落地格式（agent 自动导出时照这个写）
 - 得到大脑 ✅
 - 飞书知识库 / 云空间 / 妙记 ✅
-- 腾讯 ima ⚠️
+- 腾讯 ima ✅
 - Plaud 等录音卡
 - 钉钉闪记、通义听悟、讯飞听见
 - Notion、印象笔记、有道云笔记、Apple 备忘录、其他
@@ -63,22 +63,32 @@ duration_min: 42
 - 妙记：打开妙记 → 右上角「···」→「导出文字记录」→ 选 TXT 或 SRT
 - 文档：右上角「···」→「下载为」→ Word 或 PDF（只能一篇一篇导）
 
-## 腾讯 ima ⚠️
+## 腾讯 ima ✅
 
-ima 有官方 OpenAPI：
+全部笔记 + 所有知识库里的文件（PDF / Word / Markdown / TXT / HTML），一条命令全自动（2026-11 实测，7 个知识库，约 25 秒）。只用 Python 标准库，不用装 Node。
 
-1. 请用户打开 https://ima.qq.com/agent-interface （或客户端：头像 →「Claw 配置」），生成 Client ID 和 API Key。**API Key 只显示一次**，让用户自己保存。
-2. 不要让用户把 Key 发到聊天里。请用户自己在终端运行下面的命令，把 Key 存进本机文件（macOS；Windows 请用户用记事本新建这两个文件，各粘贴一行）：
+1. 请用户打开 https://ima.qq.com/agent-interface （或 ima 客户端：头像 →「Claw 配置」），生成 **Client ID** 和 **API Key**。API Key 只显示一次，页面先别关。
+2. **不要让用户把凭证发到聊天里。**你运行：
    ```bash
-   mkdir -p ~/.config/ima && pbpaste > ~/.config/ima/client_id   # 先复制 Client ID 再运行
-   pbpaste > ~/.config/ima/api_key                               # 再复制 API Key 再运行
+   python3 SKILL_DIR/scripts/setup_ima.py
    ```
-3. 请求一律 `POST https://ima.qq.com/openapi/...`，请求头带 `ima-openapi-clientid` 和 `ima-openapi-apikey`。
-   - 笔记：`/openapi/note/v1/list_note_folder_by_cursor` 列笔记本，`search_note_book` 列笔记，`get_doc_content`（`target_content_format=0` 取纯文本）取正文。来源 key 用 `ima`。
-   - 知识库：`/openapi/wiki/v1/search_knowledge_base`（query 传空串列出全部），`get_knowledge_list` 分页列条目（每页 1-50），`get_media_info` 取内容。
-   - 官方 Skill 包里有完整接口说明：https://app-dl.ima.qq.com/skills/ima-skills-1.1.10.zip
+   macOS 会弹两个输入框让用户自己粘贴（Windows/Linux 在终端里输入），存到 `~/.config/ima/`（和官方 ima-skill 共用），然后自动测一次连接，打印能看到的知识库。
+   - 两个值粘反了会自动对调（实测小白很容易粘反）。
+   - 用户已经把 Key 贴进聊天了：不要拿来用，请用户在 ima 页面重新生成一个再走上面的弹窗。
+   - 显示「连接失败」：多半是 API Key 过期或复制少了字符，重新生成。
+3. 导出 + 导入：
+   ```bash
+   python3 SKILL_DIR/scripts/fetch_ima.py --kb KB
+   ```
+   - 全程只调读接口，不改 ima 里任何东西。
+   - 笔记正文用 JSON 格式取回再转 Markdown（纯文本格式会丢掉分段），保留标题、加粗、表格，去掉图片。
+   - 知识库里的「笔记」和笔记列表是同一篇，只导一次，并在正文开头标出它在哪些知识库里。
+   - 知识库里的文件下载到 `KB/inbox/ima/files/` 再读文字；网页、公众号文章、图片、录音、PPT、Excel 不导出，结尾会列出来。
+   - 重跑只下载改过的笔记和新文件。只要笔记加 `--only notes`，只要知识库文件加 `--only kb`。
 
-手动兜底：ima 没有批量导出，只能单篇「导出 PDF」。笔记多时优先走 API。
+接口（给想自己扩展的人）：`POST https://ima.qq.com/openapi/...`，请求头 `ima-openapi-clientid` / `ima-openapi-apikey`。笔记 `note/v1/list_note`（cursor 是偏移量：""、"20"、"40"…，每页最多 20）、`note/v1/get_doc_content`（`target_content_format=2` 取 JSON）；知识库 `wiki/v1/search_knowledge_base`（query 传空串列出全部）、`wiki/v1/get_knowledge_list`、`wiki/v1/get_media_info`（文件给带签名请求头的下载链接，笔记给 notebook_id）。官方 Skill 包：https://app-dl.ima.qq.com/skills/ima-skills-1.1.10.zip
+
+手动兜底：ima 没有批量导出，只能单篇「导出 PDF」。
 
 ## Plaud 等录音卡
 

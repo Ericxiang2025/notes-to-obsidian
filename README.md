@@ -8,6 +8,8 @@
 
 数据全部存在你自己电脑上 · 小白零代码 · 一个 Agent Skill 搞定
 
+✅ **得到大脑 · 飞书 · 腾讯 ima 三大来源已用真实账号实测跑通，一条命令全自动导入**
+
 </div>
 
 ---
@@ -36,7 +38,7 @@
 |---|---|---|
 | 得到大脑（含得到录音卡） | 官方 CLI，浏览器点一下授权，全自动 | ✅ 实测 400+ 条 |
 | 飞书知识库 / 云空间文档 / 上传的 PDF·Word / 妙记纪要 | 官方 lark-cli，浏览器授权后一条命令全自动 | ✅ 实测 57 条 |
-| 腾讯 ima 笔记 / 知识库 | 官方 OpenAPI 自动导出 | ⚠️ 未实测 |
+| 腾讯 ima 笔记 / 知识库里的 PDF·Word·Markdown | 官方 OpenAPI，网页生成密钥、弹窗粘贴，一条命令全自动 | ✅ 实测 7 个知识库 |
 | Plaud 等录音卡 | 官方 CLI/MCP，或 App 导出 TXT/SRT/MD | ✅ 文件导入已测 / ⚠️ CLI 未实测 |
 | 钉钉闪记、通义听悟、讯飞听见 | 导出 docx / txt / srt | ✅ 文件导入已测 |
 | Notion、印象笔记、有道、Apple 备忘录 | 导出 Markdown / Word / PDF | ✅ 文件导入已测 |
@@ -98,7 +100,13 @@ notes-to-obsidian/
 │   ├── taxonomy-template.md    # 分类规范
 │   ├── koubo-framework.md      # 口播逐字稿写作框架
 │   └── after-install-guide.md  # 装好后的上手引导
-└── scripts/                    # 导入、分类合并、建库、生成 Obsidian 仓库
+└── scripts/
+    ├── fetch_getnote.py        # 得到大脑
+    ├── fetch_feishu.py         # 飞书知识库 / 云空间
+    ├── fetch_ima.py            # 腾讯 ima 笔记 / 知识库
+    ├── setup_ima.py            # ima 密钥弹窗保存（不经过聊天）
+    ├── import_files.py         # 其他所有导出文件
+    └── ...                     # 分类合并、建库、生成 Obsidian 仓库
 ```
 
 ## 作者

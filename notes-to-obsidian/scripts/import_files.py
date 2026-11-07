@@ -206,6 +206,9 @@ def main():
             looks_audio = len(TS_LINE.findall(body)) >= 5
             if f.suffix.lower() in (".srt", ".vtt") or kind == "transcript" or (kind is None and looks_audio and len(files) > 1):
                 transcript.append(body)
+            elif kind is None and len(files) == 1 and looks_audio and re.search(r"^#{1,3} ", body, re.M):
+                content.append(body)  # 单个文件里既有「# 总结」标题又有逐字稿（如得到导出的 md）：整篇进正文
+                meta.setdefault("is_audio", "true")
             elif kind is None and (a.audio or meta.get("is_audio") == "true" or looks_audio):
                 transcript.append(body)
             else:
